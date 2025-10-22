@@ -1,0 +1,434 @@
+/* static/css/main.css */
+/* ==================== CSS VARIABLES ==================== */
+:root {
+    --primary: #0a66c2;
+    --primary-dark: #004182;
+    --primary-light: #70b5f9;
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --text: #191919;
+    --text-secondary: #666666;
+    --border: #e0e0e0;
+    --error: #d11124;
+    --success: #057642;
+    --warning: #ffc107;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --radius: 8px;
+    --transition: all 0.2s ease;
+}
+
+/* ==================== RESET & BASE STYLES ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    padding-top: 76px; /* For fixed navbar */
+}
+
+/* ==================== COMMON HEADER STYLES ==================== */
+.navbar {
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.navbar-brand {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary) !important;
+}
+
+.search-box {
+    position: relative;
+    max-width: 280px;
+    flex: 1;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px 8px 38px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #eef3f8;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.search-input:focus {
+    background: var(--surface);
+    border-color: var(--primary);
+    outline: none;
+}
+
+.search-icon {
+    position: absolute;
+    right: 12px;              /* ✅ move to right */
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    z-index: 3;
+}
+
+
+.nav-item {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 12px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    color: var(--text);
+    background: rgba(0,0,0,0.04);
+}
+
+.nav-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+}
+
+/* ==================== COMMON CARD STYLES ==================== */
+.card {
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: none;
+    margin-bottom: 16px;
+}
+
+.card-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* ==================== COMMON BUTTON STYLES ==================== */
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    border-radius: 16px;
+    font-weight: 600;
+    padding: 6px 16px;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+    border-radius: 16px;
+    font-weight: 600;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* ==================== COMMON PROFILE STYLES ==================== */
+.profile-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-avatar-lg {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid white;
+}
+
+/* ==================== COMMON POST STYLES ==================== */
+.post-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+    border: none;
+}
+
+.post-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.post-content {
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+}
+
+.action-btn {
+    flex: 1;
+    padding: 8px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.action-btn:hover {
+    background: rgba(0,0,0,0.04);
+}
+
+.action-btn.liked {
+    color: var(--primary);
+}
+
+/* ==================== COMMON COMMENT STYLES ==================== */
+.comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-avatar.small {
+    width: 24px;
+    height: 24px;
+}
+
+.comment-bubble {
+    background-color: #f0f2f5;
+    border-radius: 18px;
+    padding: 8px 12px;
+}
+
+.comment-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    font-size: 14px;
+    resize: none;
+}
+
+/* ==================== COMMON NETWORK STYLES ==================== */
+.user-card {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.user-card:hover {
+    background-color: #f8f9fa;
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.user-name:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.user-headline {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.user-location {
+    color: #999;
+    font-size: 12px;
+}
+
+/* ==================== COMMON UTILITY CLASSES ==================== */
+.text-primary { color: var(--primary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-muted { color: #666 !important; }
+
+.bg-primary { background-color: var(--primary) !important; }
+.bg-surface { background-color: var(--surface) !important; }
+
+.border { border: 1px solid var(--border) !important; }
+.border-bottom { border-bottom: 1px solid var(--border) !important; }
+.border-top { border-top: 1px solid var(--border) !important; }
+
+.rounded { border-radius: var(--radius) !important; }
+.rounded-circle { border-radius: 50% !important; }
+
+.shadow { box-shadow: var(--shadow) !important; }
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+    body {
+        padding-top: 56px;
+    }
+
+    .navbar {
+        height: 56px;
+    }
+
+    .search-box {
+        max-width: 200px;
+    }
+
+    .container {
+        padding: 0 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .search-box {
+        max-width: 150px;
+    }
+
+    .card-body {
+        padding: 16px;
+    }
+
+    .user-card {
+        padding: 12px;
+    }
+}
+
+/* ==================== COMMON FORM STYLES ==================== */
+.form-control {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(10, 102, 194, 0.2);
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+/* ==================== COMMON MODAL STYLES ==================== */
+.modal-content {
+    border-radius: var(--radius);
+    border: none;
+    box-shadow: var(--shadow);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+}
+
+/* ==================== COMMON ALERT STYLES ==================== */
+.alert {
+    border-radius: var(--radius);
+    border: none;
+    padding: 12px 16px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-error,
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+{% block extra_css %}
+<style>
+  /* --- BACKGROUND BLUR EFFECT --- */
+  body {
+    background: url("{% static 'images/bg-blur.jpg' %}") center/cover no-repeat fixed;
+    /* optional fallback color */
+    background-color: #f0f2f5;
+    position: relative;
+  }
+
+  /* Blur overlay for readability */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(12px); /* main blur effect */
+    -webkit-backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.4); /* light transparent overlay */
+    z-index: -1; /* stays behind content */
+  }
+
+  /* Optional: make cards slightly transparent for soft look */
+  .card, .navbar, .modal-content {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+</style>
+{% endblock %}
