@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load tz %}
+{% block title %}Book Alumni Slots{% endblock %}
+
+{% block extra_css %}
+<style>
+  .alumni-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    background: var(--surface);
+  }
+  .slot-item {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+  }
+  .slot-item:last-child {
+    border-bottom: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-12 col-lg-8 mx-auto">
+      <h4 class="fw-bold mb-4">Available Alumni Time Slots</h4>
+
+      {% if slots %}
+        {% regroup slots by alumni as alumni_slots %}
+        
+        {% for alumni in alumni_slots %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="d-flex align-items-center">
+              <img src="{% if alumni.grouper.userprofile.profile_photo %}{{ alumni.grouper.userprofile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" 
+                   class="rounded-circle me-3" width="50" height="50" alt="{{ alumni.grouper.userprofile.full_name }}">
+              <div>
+                <h6 class="fw-bold mb-0">{{ alumni.grouper.userprofile.full_name|default:alumni.grouper.username }}</h6>
+                {% if alumni.grouper.userprofile.headline %}
+                <small class="text-muted">{{ alumni.grouper.userprofile.headline }}</small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% for slot in alumni.list %}
+              <div class="col-md-6 mb-3">
+                <div class="border rounded p-3 h-100">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <small class="text-muted d-block">Start</small>
+                      <strong>{{ slot.start_time|localtime|date:"M d, Y H:i" }}</strong>
+                    </div>
+                    <div class="text-end">
+                      <small class="text-muted d-block">End</small>
+                      <strong>{{ slot.end_time|localtime|date:"M d, Y H:i" }}</strong>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                      Duration: {{ slot.duration }}
+                    </small>
+                    <a href="{% url 'availability_book' slot.id %}" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-calendar-check me-1"></i>Book
+                      </a>
+
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="card">
+          <div class="card-body text-center py-5">
+            <i class="fa-regular fa-calendar-times fa-3x mb-3 text-muted"></i>
+            <h5 class="text-muted fw-bold mb-2">No Available Slots</h5>
+            <p class="text-muted mb-0">There are no available time slots at the moment.</p>
+            <p class="text-muted">Please check back later or contact alumni directly.</p>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Quick Actions -->
+      <div class="card mt-4">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">Can't find a suitable time?</h6>
+          <div class="d-flex gap-2">
+            <a href="{% url 'my_connections' %}" class="btn btn-outline-primary btn-sm">
+              <i class="fa-solid fa-users me-1"></i>Browse Connections
+            </a>
+            <a href="{% url 'search_results' %}" class="btn btn-outline-primary btn-sm">
+              <i class="fa-solid fa-search me-1"></i>Find More Alumni
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
