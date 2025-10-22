@@ -1,0 +1,422 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{user_profile.full_name}} - AlumniFy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container {
+        margin-top: 80px;
+        padding-bottom: 40px;
+    }
+
+    .profile-cover {
+        height: 200px; /* Reduced height */
+        background-size: cover;
+        background-position: center;
+        position: relative;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .profile-picture-container {
+        position: absolute;
+        left: 40px;
+        z-index: 2;
+    }
+
+    .profile-picture {
+        width: 120px; /* Reduced from 140px */
+        height: 120px; /* Reduced from 140px */
+        border-radius: 50%;
+        border: 4px solid white; /* Reduced from 5px */
+        background: white;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .profile-picture img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .profile-info {
+        padding: 20px 40px 20px;
+        position: relative;
+    }
+
+    .profile-content {
+        margin-left: 160px; /* Reduced from 180px to match smaller picture */
+        min-height: 120px; /* Reduced to match smaller picture */
+    }
+
+    .section-card {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+        border: none;
+        overflow: hidden;
+    }
+
+    .section-header {
+        background: white;
+        padding: 20px 24px;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+    }
+
+    .experience-item, .education-item {
+        padding: 20px 24px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s;
+    }
+
+    .experience-item:hover, .education-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .experience-item:last-child, .education-item:last-child {
+        border-bottom: none;
+    }
+
+    .btn-connect {
+        background-color: #0a66c2;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 24px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-connect:hover {
+        background-color: #004182;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(10, 102, 194, 0.3);
+    }
+
+    .btn-pending {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 24px;
+        font-weight: 600;
+    }
+
+    .btn-connected {
+        background-color: #198754;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 24px;
+        font-weight: 600;
+    }
+
+    .btn-accept {
+        background-color: #198754;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        margin-right: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-accept:hover {
+        background-color: #157347;
+        transform: translateY(-1px);
+    }
+
+    .btn-ignore {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-ignore:hover {
+        background-color: #5c636a;
+        transform: translateY(-1px);
+    }
+
+    .profile-name {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 8px;
+    }
+
+    .profile-headline {
+        font-size: 1.25rem;
+        color: #666;
+        margin-bottom: 12px;
+    }
+
+    .profile-location {
+        color: #666;
+        font-size: 1rem;
+        margin-bottom: 20px;
+    }
+
+    .experience-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .experience-company {
+        color: #0a66c2;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .experience-duration {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+
+    .experience-description {
+        color: #333;
+        line-height: 1.5;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        color: #ddd;
+        margin-bottom: 16px;
+    }
+
+    @media (max-width: 768px) {
+        .profile-container {
+            margin-top: 70px;
+        }
+
+        .profile-cover {
+            height: 180px;
+        }
+
+        .profile-picture-container {
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -40px;
+        }
+
+        .profile-picture {
+            width: 100px;
+            height: 100px;
+        }
+
+        .profile-info {
+            margin-top: 50px;
+            padding: 20px;
+        }
+
+        .profile-content {
+            margin-left: 0;
+            text-align: center;
+            min-height: auto;
+        }
+
+        .profile-name {
+            font-size: 1.5rem;
+        }
+
+        .profile-headline {
+            font-size: 1.1rem;
+        }
+
+        .btn-connect, .btn-pending, .btn-connected {
+            padding: 8px 20px;
+            font-size: 0.9rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .profile-picture-container {
+            left: 20px;
+            transform: none;
+            bottom: -35px;
+        }
+
+        .profile-picture {
+            width: 80px;
+            height: 80px;
+            border-width: 3px;
+        }
+
+        .profile-info {
+            margin-top: 40px;
+        }
+
+        .profile-content {
+            margin-left: 100px;
+            text-align: left;
+            min-height: 80px;
+        }
+
+        .profile-actions {
+            margin-top: 15px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container profile-container">
+    <!-- Profile Header -->
+    <div class="card section-card">
+        <div class="profile-cover" style="background-image: url('{% if user_profile.background_photo %}{{ user_profile.background_photo.url }}{% else %}{% static 'images/default-cover.png' %}{% endif %}');">
+        </div>
+
+        <div class="card-body profile-info">
+    <div class="profile-picture-container">
+        <div class="profile-picture">
+            <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" alt="Profile Picture">
+        </div>
+    </div>
+
+    <div class="profile-content">
+        <div class="row">
+            <div class="col-md-8">
+                <h1 class="profile-name">{{user_profile.full_name}}</h1>
+                {% if user_profile.headline %}
+                <p class="profile-headline">{{user_profile.headline}}</p>
+                {% endif %}
+                {% if user_profile.location %}
+                <p class="profile-location">
+                    <i class="fas fa-map-marker-alt me-2"></i>{{user_profile.location}}
+                </p>
+                {% endif %}
+            </div>
+            <div class="col-md-4 text-md-end">
+                <!-- Connection Buttons -->
+                <div class="profile-actions mt-3 mt-md-0">
+                    {% if received_request %}
+                    <button class="btn btn-accept" data-sender-id="{{user_profile.id}}">
+                        Accept
+                    </button>
+                    <button class="btn btn-ignore" data-sender-id="{{user_profile.id}}">
+                        Ignore
+                    </button>
+                    {% elif sent_request %}
+                    <button class="btn btn-pending" data-user-id="{{user_profile.id}}">
+                        Pending
+                    </button>
+                    {% elif connection %}
+                    <button class="btn btn-connected" data-user-id="{{user_profile.id}}">
+                        Connected
+                    </button>
+                    {% else %}
+                    <button class="btn btn-connect" data-user-id="{{user_profile.id}}">
+                        Connect
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+
+    <!-- Experience Section -->
+    <div class="card section-card">
+        <div class="section-header">
+            <i class="fas fa-briefcase me-2"></i>Experience
+        </div>
+        <div class="card-body p-0">
+            {% for experience in experience_list %}
+            <div class="experience-item">
+                <div class="experience-title">{{experience.title}}</div>
+                <div class="experience-company">{{experience.company}}</div>
+                <div class="experience-duration">
+                    {{experience.start_date}} -
+                    {% if not experience.end_date %}
+                    Present
+                    {% else %}
+                    {{ experience.end_date }}
+                    {% endif %}
+                    {% if experience.duration %}
+                    · {{ experience.duration }}
+                    {% endif %}
+                </div>
+                {% if experience.location %}
+                <div class="experience-duration">
+                    <i class="fas fa-map-marker-alt me-1"></i>{{experience.location}}
+                </div>
+                {% endif %}
+                {% if experience.description %}
+                <div class="experience-description mt-2">{{experience.description}}</div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-briefcase"></i>
+                </div>
+                <p class="mb-0">No experience added yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Education Section -->
+    <div class="card section-card">
+        <div class="section-header">
+            <i class="fas fa-graduation-cap me-2"></i>Education
+        </div>
+        <div class="card-body p-0">
+            {% for education in education_list %}
+            <div class="education-item">
+                <div class="experience-title">{{education.degree}}</div>
+                <div class="experience-company">{{education.school}}</div>
+                <div class="experience-duration">
+                    {{education.start_date}} -
+                    {% if not education.end_date %}
+                    Present
+                    {% else %}
+                    {{ education.end_date }}
+                    {% endif %}
+                    {% if education.duration %}
+                    · {{ education.duration }}
+                    {% endif %}
+                </div>
+                {% if education.location %}
+                <div class="experience-duration">
+                    <i class="fas fa-map-marker-alt me-1"></i>{{education.location}}
+                </div>
+                {% endif %}
+                {% if education.description %}
+                <div class="experience-description mt-2">{{education.description}}</div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <p class="mb-0">No education added yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/profile.js' %}"></script>
+{% endblock %}
