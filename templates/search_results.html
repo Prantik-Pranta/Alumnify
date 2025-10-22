@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Search Results{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h3 class="mb-3">Search</h3>
+    {% if messages %}
+    <div class="d-none">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <!-- Search form (GET so results are shareable/bookmarkable) -->
+    <form class="row g-2 align-items-end mb-4" action="{% url 'search_results' %}" method="get">
+        <div class="col-md-6">
+            <label class="form-label">Search query</label>
+            <input type="text" name="search_input" class="form-control" value="{{ query|default:'' }}"
+                   placeholder="e.g., John or University of Dhaka">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Search by</label>
+            <select name="search_by" class="form-select">
+                <option value="name" {% if search_by == 'name' %}selected{% endif %}>Name</option>
+                <option value="university" {% if search_by == 'university' %}selected{% endif %}>University</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100">Search</button>
+        </div>
+    </form>
+
+
+    {% if query %}
+    <p class="text-muted mb-3">
+        Showing results for <strong>{{ query }}</strong> by <strong>{{ search_by }}</strong>.
+        <span class="ms-2 badge bg-secondary">{{ search_results|length }}</span>
+    </p>
+    {% endif %}
+
+    {% if search_results %}
+    <div class="list-group">
+        {% for profile in search_results %}
+        <div class="list-group-item py-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <a href="{% url 'view_profile' profile.id %}">
+                        <img src="{% if profile.profile_photo %}{{ profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                             class="rounded-circle me-3" width="56" height="56" alt="{{ profile.full_name }}">
+                    </a>
+                    <div class="flex-grow-1">
+                        <a href="{% url 'view_profile' profile.id %}" class="text-decoration-none">
+                            <h6 class="mb-1">{{ profile.full_name }}</h6>
+                        </a>
+                        {% if profile.headline %}
+                        <div class="text-muted small">{{ profile.headline }}</div>
+                        {% endif %}
+                        {% if profile.university %}
+                        <div class="small"><i class="fa-solid fa-building-columns me-1"></i> {{ profile.university }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Connection Status & Actions -->
+                <div class="connection-actions">
+                    {% if profile.id == user.userprofile.id %}
+                        <!-- Current user's profile -->
+                        <span class="badge bg-light text-dark border">You</span>
+
+                    {% elif profile.connection_status == 'connected' %}
+                        <!-- Already connected -->
+                        <span class="badge bg-success me-2">Connected</span>
+                        <form action="{% url 'search_results' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="remove">
+                            <input type="hidden" name="target_id" value="{{ profile.id }}">
+                            <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Remove this connection?')">
+                                Remove
+                            </button>
+                        </form>
+
+                    {% elif profile.connection_status == 'request_sent' %}
+                        <!-- Request sent by current user -->
+                        <span class="badge bg-warning text-dark me-2">Request Sent</span>
+                        <form action="{% url 'search_results' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="cancel">
+                            <input type="hidden" name="target_id" value="{{ profile.id }}">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="return confirm('Cancel connection request?')">
+                                Cancel
+                            </button>
+                        </form>
+
+                    {% elif profile.connection_status == 'request_received' %}
+                        <!-- Request received from this user -->
+                        <form action="{% url 'search_results' %}" method="post" class="d-inline me-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="accept">
+                            <input type="hidden" name="target_id" value="{{ profile.id }}">
+                            <button class="btn btn-success btn-sm">Accept</button>
+                        </form>
+                        <form action="{% url 'search_results' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="ignore">
+                            <input type="hidden" name="target_id" value="{{ profile.id }}">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="return confirm('Ignore this connection request?')">
+                                Ignore
+                            </button>
+                        </form>
+
+                    {% else %}
+                        <!-- No connection - can send request -->
+                        <form action="{% url 'search_results' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="create">
+                            <input type="hidden" name="target_id" value="{{ profile.id }}">
+                            <button class="btn btn-primary btn-sm">Connect</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    {% if query %}
+    <div class="text-center text-muted py-5">
+        <i class="fa-solid fa-user-group fa-2x mb-3"></i>
+        <p class="mb-0">No results found for this {{ search_by }}.</p>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+// Function to show toast notifications
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        createToastContainer();
+    }
+
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('toast-container').innerHTML += toastHtml;
+
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: 3000
+    });
+    toast.show();
+
+    // Remove toast from DOM after hide
+    toastElement.addEventListener('hidden.bs.toast', function () {
+        this.remove();
+    });
+}
+
+// Create toast container if it doesn't exist
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+}
+
+// Check for Django messages and show toasts
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we have Django messages
+    const messageElements = document.querySelectorAll('.alert');
+    messageElements.forEach(function(alert) {
+        const message = alert.textContent.trim();
+        const alertClass = alert.className;
+
+        let type = 'info';
+        if (alertClass.includes('alert-success')) type = 'success';
+        else if (alertClass.includes('alert-error') || alertClass.includes('alert-danger')) type = 'danger';
+        else if (alertClass.includes('alert-warning')) type = 'warning';
+
+        if (message) {
+            showToast(message, type);
+        }
+    });
+
+    // Remove original message alerts after showing toasts
+    setTimeout(function() {
+        messageElements.forEach(function(alert) {
+            alert.remove();
+        });
+    }, 100);
+});
+
+// Add CSS for toast positioning
+const toastStyles = `
+    .toast-container {
+        z-index: 9999;
+    }
+    .toast {
+        min-width: 300px;
+    }
+`;
+const styleSheet = document.createElement("style");
+styleSheet.textContent = toastStyles;
+document.head.appendChild(styleSheet);
+</script>
+{% endblock %}
