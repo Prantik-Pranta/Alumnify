@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load tz %}
+{% block title %}Manage Availability{% endblock %}
+
+{% block extra_css %}
+<style>
+  .slot-table th {
+    background: var(--bg);
+    font-weight: 600;
+  }
+  .status-badge {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-12 col-lg-8 mx-auto">
+      <h4 class="fw-bold mb-4">Manage Your Availability</h4>
+
+      <!-- Add Slot Form -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="fw-bold mb-0">Add New Time Slot</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" class="row g-3 align-items-end">
+            {% csrf_token %}
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Start Time</label>
+              <input type="datetime-local" name="start_time" class="form-control" required>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">End Time</label>
+              <input type="datetime-local" name="end_time" class="form-control" required>
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-primary w-100">
+                <i class="fa-solid fa-plus me-1"></i>Add Slot
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Current Slots -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0">Your Available Slots</h5>
+          <span class="badge bg-primary">{{ my_slots|length }} slot{{ my_slots|length|pluralize }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% if my_slots %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 slot-table">
+              <thead>
+                <tr>
+                  <th>Start Time</th>
+                  <th>End Time</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for slot in my_slots %}
+                <tr>
+                  <td>{{ slot.start_time|localtime|date:"M d, Y H:i" }}</td>
+                  <td>{{ slot.end_time|localtime|date:"M d, Y H:i" }}</td>
+                  <td>
+                    {% if slot.is_booked %}
+                    <span class="badge bg-secondary status-badge">Booked</span>
+                    {% else %}
+                    <span class="badge bg-success status-badge">Available</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if not slot.is_booked %}
+                    <form method="post" action="{% url 'delete_availability' slot.id %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger" 
+                              onclick="return confirm('Delete this availability slot?')">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted small">Cannot delete booked slot</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted p-5">
+            <i class="fa-regular fa-calendar fa-3x mb-3"></i>
+            <p class="fw-semibold mb-1">No availability slots</p>
+            <small>Add your available time slots above</small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
