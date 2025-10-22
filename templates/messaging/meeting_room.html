@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}Meeting Room{% endblock %}
+
+{% block extra_css %}
+<style>
+  .meeting-container {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .meeting-header {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+  .meeting-actions {
+    padding: 16px 20px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-12">
+      <!-- Meeting Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 class="fw-bold mb-1">Meeting Room</h4>
+          <p class="text-muted mb-0">Room: <strong>{{ room_code }}</strong></p>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="https://{{ jitsi_domain }}/{{ room_code }}" target="_blank" class="btn btn-outline-primary">
+            <i class="fa-solid fa-up-right-from-square me-1"></i>Open in New Tab
+          </a>
+          <a href="{% url 'inbox' %}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i>Back to Messages
+          </a>
+        </div>
+      </div>
+
+      <!-- Jitsi Container -->
+      <div class="meeting-container">
+        <div class="meeting-header">
+          <div class="d-flex align-items-center">
+            <i class="fa-solid fa-video text-primary me-2"></i>
+            <span class="fw-semibold">Live Meeting: {{ room_code }}</span>
+          </div>
+        </div>
+        
+        <div id="jitsi-container" style="height: 70vh; background: #000;"></div>
+        
+        <div class="meeting-actions">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              <i class="fa-solid fa-circle text-danger me-1"></i>Live • 
+              Powered by Jitsi Meet
+            </small>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-secondary" onclick="toggleFullscreen()">
+                <i class="fa-solid fa-expand me-1"></i>Fullscreen
+              </button>
+              <button class="btn btn-sm btn-outline-primary" onclick="copyMeetingLink()">
+                <i class="fa-solid fa-link me-1"></i>Copy Link
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meeting Info -->
+      <div class="card mt-4">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">Meeting Information</h6>
+          <div class="row">
+            <div class="col-md-6">
+              <small class="text-muted d-block">Room Code</small>
+              <strong>{{ room_code }}</strong>
+            </div>
+            <div class="col-md-6">
+              <small class="text-muted d-block">Your Name</small>
+              <strong>{{ request.user.userprofile.full_name|escapejs }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Load Jitsi API first -->
+<script src="https://meet.jit.si/external_api.js"></script>
+
+<script>
+  // Jitsi external API embed
+  (function() {
+    const domain = "{{ jitsi_domain }}";
+    const options = {
+      roomName: "{{ room_code }}",
+      width: "100%",
+      height: "100%",
+      parentNode: document.querySelector('#jitsi-container'),
+      userInfo: {
+        displayName: "{{ request.user.userprofile.full_name|escapejs }}",
+        email: "{{ request.user.email|escapejs }}"
+      },
+      configOverwrite: {
+        prejoinPageEnabled: false,
+        startWithAudioMuted: true,
+        startWithVideoMuted: false
+      },
+      interfaceConfigOverwrite: {
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+        DEFAULT_BACKGROUND: "#f8f9fa"
+      }
+    };
+    
+    const api = new JitsiMeetExternalAPI(domain, options);
+    
+    // Handle API ready
+    api.addEventListener('videoConferenceJoined', () => {
+      console.log('Successfully joined room: {{ room_code }}');
+    });
+    
+    // Handle errors
+    api.addEventListener('videoConferenceLeft', () => {
+      console.log('Left the room: {{ room_code }}');
+    });
+    
+    window.jitsiApi = api;
+  })();
+
+  // Utility functions
+  function toggleFullscreen() {
+    const elem = document.getElementById('jitsi-container');
+    if (!document.fullscreenElement) {
+      elem.requestFullscreen().catch(err => {
+        console.log(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }
+
+  function copyMeetingLink() {
+    const meetingLink = `https://{{ jitsi_domain }}/{{ room_code }}`;
+    navigator.clipboard.writeText(meetingLink).then(() => {
+      // Show success message
+      const originalText = event.target.innerHTML;
+      event.target.innerHTML = '<i class="fa-solid fa-check me-1"></i>Copied!';
+      setTimeout(() => {
+        event.target.innerHTML = originalText;
+      }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy meeting link: ', err);
+    });
+  }
+</script>
+{% endblock %}
