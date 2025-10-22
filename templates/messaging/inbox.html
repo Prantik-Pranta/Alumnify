@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inbox{% endblock %}
+
+{% block extra_css %}
+<style>
+  .chat-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .chat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+    transition: var(--transition);
+  }
+  .chat-item:last-child { border-bottom: 0; }
+  .chat-item:hover {
+    background: var(--bg);
+    text-decoration: none;
+  }
+  .chat-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+  }
+  .chat-name {
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+  }
+  .chat-preview {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-12 col-lg-8 mx-auto">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <h4 class="fw-bold mb-0">Messages</h4>
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fa-solid fa-arrow-left me-1"></i>Back to Home
+        </a>
+      </div>
+
+      <div class="card chat-card">
+        {% if conversations %}
+          {% for c in conversations %}
+            {% with u=c.user last=c.last %}
+            <a class="chat-item" href="{% url 'chat' u.id %}">
+              <img
+                class="chat-avatar"
+                src="{% if u.userprofile and u.userprofile.profile_photo %}{{ u.userprofile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                alt="{{ u.get_full_name|default:u.username }}"
+              >
+              <div class="flex-grow-1">
+                <p class="chat-name mb-1">{{ u.get_full_name|default:u.username }}</p>
+                {% if last %}
+                  <p class="chat-preview">
+                    {% if last.sender_id == request.user.id %}You:{% else %}{{ u.first_name|default:u.username }}:{% endif %}
+                    {{ last.content }}
+                  </p>
+                {% else %}
+                  <p class="chat-preview">No messages yet — say hello 👋</p>
+                {% endif %}
+              </div>
+              <i class="fa-solid fa-chevron-right text-muted"></i>
+            </a>
+            {% endwith %}
+          {% endfor %}
+        {% else %}
+          <div class="text-center text-muted p-5">
+            <i class="fa-regular fa-comments fa-3x mb-3"></i>
+            <p class="mb-1 fw-semibold">No conversations yet</p>
+            <small>Connect with people to start chatting</small>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
