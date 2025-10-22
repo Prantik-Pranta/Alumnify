@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% load custom_filters %}
+
+{% block title %}AlumniFy - Home{% endblock %}
+
+{% block extra_css %}
+<style>
+  .create-post-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 12px 16px;
+    text-align: left;
+    color: var(--text-secondary);
+    transition: var(--transition);
+  }
+  .create-post-btn:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+  .post-avatar { width: 48px; height: 48px; border-radius: 50%; }
+  .comment-avatar { width: 32px; height: 32px; border-radius: 50%; }
+  .liked i, .liked { color: #0a66c2 !important; }
+  .post-stats { font-size: 0.85rem; color: #666; }
+  .audience-badge { font-size: 0.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    <!-- FEED -->
+    <div class="col-12 col-lg-8">
+      <!-- Create Post -->
+      <div class="card create-post mb-4">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                 class="post-avatar me-3" alt="Profile Picture" />
+            <button class="create-post-btn w-100" data-bs-toggle="modal" data-bs-target="#postModal">
+              <i class="fa-solid fa-pencil me-2"></i>
+              Start a post, {{ user_profile.full_name|default:user.username }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FEED POSTS -->
+      {% for post in posts %}
+      <div class="card post-card mb-4">
+        <div class="card-body">
+          <div class="d-flex mb-3">
+            <a href="{% url 'view_profile' post.user.id %}">
+              <img src="{% if post.user.profile_photo %}{{ post.user.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                   class="post-avatar me-2" alt="{{ post.user.full_name }}">
+            </a>
+            <div class="flex-grow-1">
+              <h6 class="mb-0 fw-bold">{{ post.user.full_name }}</h6>
+              {% if post.user.headline %}
+              <p class="text-muted small mb-0">{{ post.user.headline }}</p>
+              {% endif %}
+              <p class="text-muted small mb-0">
+                {{ post.created_at|naturaltime }} •
+                {% if post.audience_university %}
+                  <i class="fa-solid fa-building-columns me-1"></i>{{ post.audience_university }}
+                {% else %}
+                  <i class="fa-solid fa-earth-americas"></i> Everyone
+                {% endif %}
+              </p>
+            </div>
+          </div>
+
+          <p>{{ post.content|urlize|linebreaksbr }}</p>
+          {% if post.image %}
+          <img src="{{ post.image.url }}" class="img-fluid rounded mb-2" alt="Post media">
+          {% endif %}
+
+          <!-- Post Stats (Likes & Comments Count) -->
+          <div class="post-stats mb-2">
+            {% if post.like_count > 0 %}
+            <span class="me-3">
+              <i class="fa-solid fa-thumbs-up text-primary"></i> {{ post.like_count }} like{{ post.like_count|pluralize }}
+            </span>
+            {% endif %}
+            {% if post.comment_count > 0 %}
+            <span>
+              <i class="fa-regular fa-comment"></i> {{ post.comment_count }} comment{{ post.comment_count|pluralize }}
+            </span>
+            {% endif %}
+          </div>
+
+          <!-- Like / Comment / Share / Delete -->
+          <div class="d-flex justify-content-between border-top border-bottom py-2 mb-2">
+            <form method="post" action="{% url 'toggle_like' %}">
+              {% csrf_token %}
+              <input type="hidden" name="postId" value="{{ post.id }}">
+              <button class="btn btn-link text-muted {% if post in liked_posts %}liked{% endif %}">
+                <i class="fa-regular fa-thumbs-up me-1"></i>
+                {% if post in liked_posts %}Liked{% else %}Like{% endif %}
+              </button>
+            </form>
+            <button class="btn btn-link text-muted" data-bs-toggle="collapse" data-bs-target="#comments-{{ post.id }}">
+              <i class="fa-regular fa-comment me-1"></i> Comment
+            </button>
+            <button class="btn btn-link text-muted" data-bs-toggle="collapse" data-bs-target="#share-{{ post.id }}">
+              <i class="fa-solid fa-share me-1"></i> Share
+            </button>
+            {% if post.user.user == request.user %}
+            <form method="post" action="{% url 'delete_post' post.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-link text-danger" onclick="return confirm('Delete this post?');">
+                <i class="fa-solid fa-trash"></i> Delete
+              </button>
+            </form>
+            {% endif %}
+          </div>
+
+          <!-- SHARE -->
+          <div class="collapse" id="share-{{ post.id }}">
+            <form method="post" action="{% url 'share_post' %}">
+              {% csrf_token %}
+              <input type="hidden" name="post_id" value="{{ post.id }}">
+              <div class="row g-2">
+                <div class="col-md-8">
+                  <input type="text" name="content" placeholder="Add a comment..." class="form-control">
+                </div>
+                <div class="col-md-4">
+                  <select name="audience_university" class="form-select form-select-sm">
+                    <option value="">Everyone</option>
+                    {% for uni in universities %}
+                      <option value="{{ uni }}" {% if uni == user_profile.university %}selected{% endif %}>{{ uni }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="text-end mt-2">
+                <button class="btn btn-primary btn-sm">Share</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- COMMENTS -->
+          <div class="collapse" id="comments-{{ post.id }}">
+            <form method="post" action="{% url 'add_comment' %}" class="d-flex align-items-center mt-3">
+              {% csrf_token %}
+              <input type="hidden" name="post_id" value="{{ post.id }}">
+              <input type="hidden" name="comment_type" value="parent">
+              <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" class="comment-avatar me-2">
+              <input type="text" name="content" class="form-control" placeholder="Add a comment..." required>
+              <button class="btn btn-primary btn-sm ms-2">Post</button>
+            </form>
+
+            {% for parent_comment in parent_comments_map|dict_get:post.id %}
+            <div class="mt-3 d-flex">
+              <img src="{% if parent_comment.user.profile_photo %}{{ parent_comment.user.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" class="comment-avatar me-2">
+              <div class="flex-grow-1">
+                <strong>{{ parent_comment.user.full_name }}</strong>
+                <p class="mb-1">{{ parent_comment.content }}</p>
+                <small class="text-muted">{{ parent_comment.created_at|naturaltime }}</small>
+
+                <!-- Reply to comment -->
+                <div class="mt-2">
+                  <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#reply-{{ parent_comment.id }}">
+                    <i class="fa-solid fa-reply"></i> Reply
+                  </button>
+
+                  <div class="collapse mt-2" id="reply-{{ parent_comment.id }}">
+                    <form method="post" action="{% url 'add_comment' %}" class="d-flex align-items-center">
+                      {% csrf_token %}
+                      <input type="hidden" name="post_id" value="{{ post.id }}">
+                      <input type="hidden" name="parent_id" value="{{ parent_comment.id }}">
+                      <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" class="comment-avatar me-2">
+                      <input type="text" name="content" class="form-control" placeholder="Write a reply..." required>
+                      <button class="btn btn-primary btn-sm ms-2">Reply</button>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Display replies -->
+                {% for reply in child_comments_map|dict_get:parent_comment.id %}
+                <div class="mt-2 ms-4 d-flex">
+                  <img src="{% if reply.user.profile_photo %}{{ reply.user.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" class="comment-avatar me-2">
+                  <div class="flex-grow-1">
+                    <strong>{{ reply.user.full_name }}</strong>
+                    <p class="mb-1">{{ reply.content }}</p>
+                    <small class="text-muted">{{ reply.created_at|naturaltime }}</small>
+
+                    {% if reply.user.user == request.user or post.user.user == request.user %}
+                    <form method="post" action="{% url 'delete_comment' reply.id %}" class="d-inline ms-2">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger btn-light py-0 px-1"
+                              onclick="return confirm('Delete this reply?');">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+
+                {% if parent_comment.user.user == request.user or post.user.user == request.user %}
+                <form method="post" action="{% url 'delete_comment' parent_comment.id %}" class="d-inline ms-2">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger btn-light py-0 px-1"
+                          onclick="return confirm('Delete this comment?');">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-center text-muted py-5">
+        <i class="fa-solid fa-newspaper fa-2x mb-2"></i>
+        <p>No posts yet. Be the first to post!</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="col-12 col-lg-4">
+      <div class="card sidebar-card mb-4">
+        <div class="card-body text-center">
+          <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+               width="80" height="80" class="rounded-circle mb-2">
+          <h5>{{ user_profile.full_name }}</h5>
+          <p class="text-muted small mb-1">{{ user_profile.university }}</p>
+          <p class="text-muted small">
+            {% if user_profile.headline %}
+              {{ user_profile.headline }}
+            {% else %}
+              {% if user_profile.is_alumni %}Alumni{% else %}Student{% endif %}
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE POST MODAL -->
+<div class="modal fade" id="postModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form action="{% url 'create_post' %}" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Create a Post</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="d-flex align-items-center mb-3">
+            <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                 class="rounded-circle me-3" width="50" height="50">
+            <div>
+              <h6 class="mb-0">{{ user_profile.full_name }}</h6>
+              <small class="text-muted">
+                Posting to:
+                <span id="audiencePreview" class="fw-semibold">Everyone</span>
+              </small>
+            </div>
+          </div>
+
+          <textarea id="postContent" name="content" class="form-control" placeholder="What's on your mind?" rows="3"></textarea>
+
+          <div class="mt-3">
+            <label class="form-label">Audience</label>
+            <select name="audience_university" id="audienceSelect" class="form-select">
+              <option value="">Everyone (all universities)</option>
+              {% if user_profile.university %}
+              <option value="{{ user_profile.university }}">My University — {{ user_profile.university }}</option>
+              {% endif %}
+              {% for uni in universities %}
+              {% if uni != user_profile.university %}
+              <option value="{{ uni }}">{{ uni }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mt-3">
+            <input type="file" id="postImage" name="image" accept="image/*" class="d-none">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('postImage').click()">
+              <i class="fa-solid fa-image me-1"></i> Add Photo / GIF
+            </button>
+            <div id="imagePreview" class="mt-2 text-center" style="display:none;">
+              <img id="previewImg" class="img-fluid rounded" style="max-height:300px;">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="postSubmitBtn" disabled>Post</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  const content = document.getElementById('postContent');
+  const imageInput = document.getElementById('postImage');
+  const preview = document.getElementById('imagePreview');
+  const previewImg = document.getElementById('previewImg');
+  const submitBtn = document.getElementById('postSubmitBtn');
+  const audienceSelect = document.getElementById('audienceSelect');
+  const audiencePreview = document.getElementById('audiencePreview');
+
+  function updateAudiencePreview() {
+    const selectedOption = audienceSelect.options[audienceSelect.selectedIndex];
+    audiencePreview.textContent = selectedOption.text;
+  }
+
+  function reevaluate() {
+    const hasText = content && content.value.trim().length > 0;
+    const hasImage = imageInput && imageInput.files && imageInput.files.length > 0;
+    submitBtn.disabled = !(hasText || hasImage);
+
+    if (hasImage) {
+      const file = imageInput.files[0];
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImg.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.style.display = 'none';
+      previewImg.src = '';
+    }
+  }
+
+  if (content) content.addEventListener('input', reevaluate);
+  if (imageInput) imageInput.addEventListener('change', reevaluate);
+  if (audienceSelect) audienceSelect.addEventListener('change', updateAudiencePreview);
+
+  // Initialize audience preview
+  updateAudiencePreview();
+})();
+</script>
+{% endblock %}
