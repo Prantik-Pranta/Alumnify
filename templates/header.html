@@ -1,0 +1,91 @@
+{% load static %}
+<!-- templates/header.html -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{% url 'home' %}">Alumnify</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <!-- Search Box -->
+            <div class="search-box me-3">
+                <form action="{% url 'search_results' %}" method="POST" class="w-100">
+                    {% csrf_token %}
+                    <span class="search-icon">
+                        <button class="btn btn-link p-0 border-0" type="submit">
+                            <i class="fa-solid fa-search text-muted"></i>
+                        </button>
+                    </span>
+                    <input class="search-input form-control" name="search_input" placeholder="Click the icon or Search" type="text"/>
+                </form>
+            </div>
+
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                    <a class="nav-link d-flex align-items-center" href="{% url 'home' %}">
+                        <i class="fa-solid fa-home me-1"></i>
+                        <span class="d-none d-md-inline">Home</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if request.resolver_match.url_name == 'my_connections' %}active{% endif %}">
+                    <a class="nav-link d-flex align-items-center" href="{% url 'my_connections' %}">
+                        <i class="fa-solid fa-users me-1"></i>
+                        <span class="d-none d-md-inline">My Network</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if request.resolver_match.url_name == 'inbox' %}active{% endif %}">
+                    <a class="nav-link d-flex align-items-center" href="{% url 'inbox' %}">
+                        <i class="fa-solid fa-comment-dots me-1"></i>
+                        <span class="d-none d-md-inline">Messaging</span>
+                    </a>
+                </li>
+<li class="nav-item {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
+  <a class="nav-link d-flex align-items-center position-relative" href="{% url 'notifications' %}">
+    <i class="fa-solid fa-bell me-1"></i>
+    <span class="d-none d-md-inline">Notifications</span>
+    <span class="notification-dot" id="navNotificationDot"
+          {% if not has_unread_notifications %}style="display:none"{% endif %}></span>
+      {% if unread_notifications_count %}
+  <span class="badge bg-danger ms-1">{{ unread_notifications_count }}</span>
+{% endif %}
+
+  </a>
+</li>
+
+            </ul>
+
+            <!-- Profile Dropdown -->
+            <div class="dropdown">
+                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                    <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/defaultpp.png' %}{% endif %}"
+                         alt="Profile" class="profile-avatar-sm me-2">
+                    <span class="d-none d-md-inline">Me</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li class="dropdown-item-text">
+                        <div class="d-flex align-items-center p-2">
+                            <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/defaultpp.png' %}{% endif %}"
+                                 alt="Profile" class="profile-avatar-lg me-3">
+                            <div>
+                                <h6 class="mb-0 fw-bold">{{ user_profile.full_name }}</h6>
+                                {% if user_profile.headline %}
+                                <small class="text-muted">{{ user_profile.headline }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'profile' %}">View Profile</a></li>
+                    <li>
+                        <form action="{% url 'logout' %}" method="POST" class="mb-0">
+                            {% csrf_token %}
+                            <button class="dropdown-item" type="submit">Sign Out</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
