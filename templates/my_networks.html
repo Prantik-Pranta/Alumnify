@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}My Network - AlumniFy{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Network page specific styles using existing CSS variables */
+    .network-stats {
+        display: flex;
+        gap: 32px;
+        padding: 24px;
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 24px;
+        border: 1px solid var(--border);
+    }
+
+    .stat-item {
+        text-align: center;
+        flex: 1;
+    }
+
+    .stat-number {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 4px;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .section-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 24px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+
+    .section-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+        background: #fafafa;
+    }
+
+    .section-header h2 {
+        color: var(--text);
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .section-content {
+        padding: 0;
+    }
+
+    .user-card {
+        display: flex;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+        transition: var(--transition);
+    }
+
+    .user-card:hover {
+        background-color: var(--bg);
+    }
+
+    .user-card:last-child {
+        border-bottom: none;
+    }
+
+    .user-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--border);
+        margin-right: 16px;
+    }
+
+    .user-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+        text-decoration: none;
+        display: block;
+        margin-bottom: 4px;
+        transition: var(--transition);
+    }
+
+    .user-name:hover {
+        color: var(--primary);
+        text-decoration: underline;
+    }
+
+    .user-headline {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-location {
+        font-size: 13px;
+        color: #888;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+    }
+
+    .btn-connect, .btn-accept, .btn-ignore, .btn-connected {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        min-width: 100px;
+    }
+
+    .btn-connect, .btn-accept {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-connect:hover, .btn-accept:hover {
+        background: var(--primary-dark);
+    }
+
+    .btn-ignore {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--text-secondary);
+    }
+
+    .btn-ignore:hover {
+        background: var(--bg);
+        border-color: var(--text);
+        color: var(--text);
+    }
+
+    .btn-connected {
+        background: #e8f4fd;
+        color: var(--primary);
+        border: 1px solid var(--primary);
+    }
+
+    .btn-connected:hover {
+        background: #d1e9ff;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        color: var(--border);
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        color: var(--text);
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+
+    .empty-state p {
+        margin-bottom: 16px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .network-stats {
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+        }
+
+        .user-card {
+            padding: 16px;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .user-avatar {
+            margin-right: 0;
+            margin-bottom: 12px;
+        }
+
+        .user-info {
+            margin-bottom: 12px;
+        }
+
+        .action-buttons {
+            margin-left: 0;
+            justify-content: center;
+        }
+
+        .section-header {
+            padding: 16px;
+        }
+
+        .empty-state {
+            padding: 32px 16px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Network Stats -->
+            <div class="network-stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ connections|length }}</div>
+                    <div class="stat-label">Connections</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ pending_requests|length }}</div>
+                    <div class="stat-label">Pending Requests</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ suggested_users|length }}</div>
+                    <div class="stat-label">Suggestions</div>
+                </div>
+            </div>
+
+            <!-- Pending Invitations Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="h4 mb-2">Invitations</h2>
+                    <p class="text-muted mb-0">Manage your connection requests ({{ pending_requests|length }})</p>
+                </div>
+
+                <div class="section-content">
+                    {% if pending_requests %}
+                        {% for profile in pending_requests %}
+                        <div class="user-card">
+                            <a href="{% url 'view_profile' profile.id %}">
+                                <img class="user-avatar"
+                                     src="{% if profile.profile_photo %}{{ profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                                     alt="{{ profile.full_name }}">
+                            </a>
+                            <div class="user-info">
+                                <a href="{% url 'view_profile' profile.id %}" class="user-name">
+                                    {{ profile.full_name }}
+                                </a>
+                                {% if profile.headline %}
+                                <div class="user-headline">{{ profile.headline }}</div>
+                                {% endif %}
+                                {% if profile.location %}
+                                <div class="user-location">{{ profile.location }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn-accept" data-sender-id="{{ profile.id }}" onclick="acceptRequest(this)">
+                                    Accept
+                                </button>
+                                <button class="btn-ignore" data-sender-id="{{ profile.id }}" onclick="ignoreRequest(this)">
+                                    Ignore
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fa-solid fa-user-clock"></i>
+                            </div>
+                            <h3>No Pending Requests</h3>
+                            <p>You have no pending connection requests at the moment.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Your Connections Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="h4 mb-2">Your Connections</h2>
+                    <p class="text-muted mb-0">{{ connections|length }} connection{{ connections|length|pluralize }}</p>
+                </div>
+
+                <div class="section-content">
+                    {% if connections %}
+                        {% for profile in connections %}
+                        <div class="user-card">
+                            <a href="{% url 'view_profile' profile.id %}">
+                                <img class="user-avatar"
+                                     src="{% if profile.profile_photo %}{{ profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                                     alt="{{ profile.full_name }}">
+                            </a>
+                            <div class="user-info">
+                                <a href="{% url 'view_profile' profile.id %}" class="user-name">
+                                    {{ profile.full_name }}
+                                </a>
+                                {% if profile.headline %}
+                                <div class="user-headline">{{ profile.headline }}</div>
+                                {% endif %}
+                                {% if profile.location %}
+                                <div class="user-location">{{ profile.location }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn-connected" data-user-id="{{ profile.id }}" onclick="removeConnection(this)">
+                                    Connected
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fa-solid fa-user-friends"></i>
+                            </div>
+                            <h3>No Connections Yet</h3>
+                            <p>Start building your network by connecting with other alumni and students.</p>
+                            <a href="{% url 'search_results' %}" class="btn btn-primary mt-3">Find People</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- People You May Know Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="h4 mb-2">People You May Know</h2>
+                    <p class="text-muted mb-0">Suggested connections based on your network</p>
+                </div>
+
+                <div class="section-content">
+                    {% if suggested_users %}
+                        {% for profile in suggested_users %}
+                        <div class="user-card">
+                            <a href="{% url 'view_profile' profile.id %}">
+                                <img class="user-avatar"
+                                     src="{% if profile.profile_photo %}{{ profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}"
+                                     alt="{{ profile.full_name }}">
+                            </a>
+                            <div class="user-info">
+                                <a href="{% url 'view_profile' profile.id %}" class="user-name">
+                                    {{ profile.full_name }}
+                                </a>
+                                {% if profile.headline %}
+                                <div class="user-headline">{{ profile.headline }}</div>
+                                {% endif %}
+                                {% if profile.location %}
+                                <div class="user-location">{{ profile.location }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn-connect" data-user-id="{{ profile.id }}" onclick="sendConnectionRequest(this)">
+                                    Connect
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fa-solid fa-user-plus"></i>
+                            </div>
+                            <h3>No Suggestions Available</h3>
+                            <p>We'll suggest people to connect with as your network grows.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/network.js' %}"></script>
+{% endblock %}
