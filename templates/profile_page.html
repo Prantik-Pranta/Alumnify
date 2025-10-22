@@ -1,0 +1,671 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cover {
+    position: relative;
+    height: 220px;
+    background: var(--bg) url("{% if user_profile.background_photo %}{{ user_profile.background_photo.url }}{% else %}{% static 'images/default-cover.png' %}{% endif %}") center/cover no-repeat;
+    border-radius: var(--radius);
+  }
+  .cover .change-cover { 
+    position: absolute; 
+    right: 12px; 
+    bottom: 12px; 
+  }
+  .avatar {
+    width: 120px; 
+    height: 120px; 
+    border-radius: 50%;
+    border: 4px solid var(--surface); 
+    object-fit: cover; 
+    margin-top: -60px; 
+    background: var(--surface);
+  }
+  .section-card { 
+    border-radius: var(--radius); 
+    box-shadow: var(--shadow);
+    border: none;
+    margin-bottom: 16px;
+  }
+  .stat { text-align: center; }
+  .stat .num { 
+    font-weight: 700; 
+    font-size: 1.1rem; 
+    color: var(--primary);
+  }
+  .stat .lbl { 
+    color: var(--text-secondary); 
+    font-size: .85rem; 
+  }
+  .list-item-actions button { margin-left: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+{% if messages %}
+  <div class="mb-3">
+    {% for m in messages %}
+      {% if 'profile_update' in m.extra_tags %}
+        <div class="alert alert-{{ m.tags }} mb-2">{{ m }}</div>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+  <!-- Header / Cover -->
+  <div class="cover mb-4">
+    <form action="{% url 'update_cover_photo' %}" method="post" enctype="multipart/form-data" class="change-cover">
+      {% csrf_token %}
+      <input type="file" id="coverInput" name="cover_photo" accept="image/*" class="d-none" onchange="this.form.submit()">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('coverInput').click()">
+        <i class="fa-solid fa-camera"></i> Change cover
+      </button>
+    </form>
+  </div>
+
+  <!-- Top card -->
+  <div class="card section-card mb-4">
+    <div class="card-body">
+      <div class="d-flex align-items-start">
+        <form action="{% url 'update_profile_photo' %}" method="post" enctype="multipart/form-data" class="me-3">
+          {% csrf_token %}
+          <img src="{% if user_profile.profile_photo %}{{ user_profile.profile_photo.url }}{% else %}{% static 'images/default-profile.png' %}{% endif %}" class="avatar" alt="Profile photo">
+          <div class="mt-2">
+            <input type="file" name="profile_photo" accept="image/*" class="d-none" id="pfpInput" onchange="this.form.submit()">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('pfpInput').click()">
+              <i class="fa-solid fa-camera"></i> Change photo
+            </button>
+          </div>
+        </form>
+
+        <div class="flex-grow-1">
+          <h4 class="mb-1">{{ user_profile.full_name }}</h4>
+          <div class="text-muted">
+            {% if user_profile.headline %}
+              {{ user_profile.headline }}
+            {% else %}
+              {% if user_profile.is_alumni %}Alumni{% else %}Student{% endif %}
+            {% endif %}
+          </div>
+          <div class="text-muted small mb-3">
+            {% if user_profile.location %}<i class="fa-solid fa-location-dot me-1"></i>{{ user_profile.location }} &middot; {% endif %}
+            {% if user_profile.university %}<i class="fa-solid fa-building-columns me-1"></i>{{ user_profile.university }}{% endif %}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-auto stat">
+              <div class="num">{{ connection_count }}</div>
+              <div class="lbl">Connections</div>
+            </div>
+            <div class="col-auto stat">
+              <div class="num">{{ user_profile.posts.count }}</div>
+              <div class="lbl">Posts</div>
+            </div>
+          </div>
+
+          <!-- Edit basic info -->
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+            Edit Profile
+          </button>
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+            Delete Account
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Experience -->
+  <div class="card section-card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Experience</h5>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addExperienceModal">
+        <i class="fa-solid fa-plus"></i> Add
+      </button>
+    </div>
+    <div class="card-body">
+      {% if experience_list %}
+        {% for exp in experience_list %}
+          <div class="d-flex justify-content-between align-items-start border-bottom py-3">
+            <div>
+              <div class="fw-semibold">{{ exp.title }}</div>
+              <div class="text-muted small">{{ exp.company }}{% if exp.employment_type %} &middot; {{ exp.employment_type }}{% endif %}</div>
+              {% if exp.period_text or exp.is_current %}
+                <div class="text-muted small">{{ exp.period_text }}{% if exp.is_current %} (Present){% endif %}</div>
+              {% endif %}
+              {% if exp.location %}<div class="text-muted small">{{ exp.location }}{% if exp.location_type %} • {{ exp.location_type }}{% endif %}</div>{% endif %}
+              {% if exp.description %}<div class="mt-2">{{ exp.description|linebreaksbr }}</div>{% endif %}
+            </div>
+            <div class="list-item-actions">
+              <!-- Edit -->
+              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editExperienceModal-{{ exp.id }}">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+
+              <!-- Delete -->
+              <form method="post" action="{% url 'delete_experience' exp.id %}" class="d-inline">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this experience?')">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Per-item Edit Experience Modal -->
+          <div class="modal fade" id="editExperienceModal-{{ exp.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <form class="modal-content" method="post" action="{% url 'update_experience' exp.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                  <h5 class="modal-title">Edit Experience</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-2">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-control" name="title" value="{{ exp.title }}">
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Employment Type</label>
+                    <input type="text" class="form-control" name="employment_type" value="{{ exp.employment_type }}">
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Company</label>
+                    <input type="text" class="form-control" name="company" value="{{ exp.company }}">
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Period</label>
+                    <input type="text" class="form-control" name="period_text" value="{{ exp.period_text }}" placeholder="e.g., Jan 2021 – Mar 2023">
+                  </div>
+                  <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="exp_current_{{ exp.id }}" name="is_current" {% if exp.is_current %}checked{% endif %}>
+                    <label class="form-check-label" for="exp_current_{{ exp.id }}">I currently work here</label>
+                  </div>
+                  <div class="row mt-2">
+                    <div class="col">
+                      <label class="form-label">Location</label>
+                      <input type="text" class="form-control" name="location" value="{{ exp.location }}">
+                    </div>
+                    <div class="col">
+                      <label class="form-label">Location Type</label>
+                      <input type="text" class="form-control" name="location_type" value="{{ exp.location_type }}">
+                    </div>
+                  </div>
+                  <div class="mb-2 mt-2">
+                    <label class="form-label">Headline (profile)</label>
+                    <input type="text" class="form-control" name="headline" value="{{ user_profile.headline }}">
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="description" rows="4">{{ exp.description }}</textarea>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+                  <button class="btn btn-primary">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-muted">No experience added yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Education -->
+  <div class="card section-card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Education</h5>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addEducationModal">
+        <i class="fa-solid fa-plus"></i> Add
+      </button>
+    </div>
+    <div class="card-body">
+      {% if education_list %}
+        {% for edu in education_list %}
+          <div class="d-flex justify-content-between align-items-start border-bottom py-3">
+            <div>
+              <div class="fw-semibold">{{ edu.school }}</div>
+              <div class="text-muted small">
+                {% if edu.degree %}{{ edu.degree }}{% endif %}
+                {% if edu.field_of_study %} • {{ edu.field_of_study }}{% endif %}
+              </div>
+              {% if edu.period_text %}<div class="text-muted small">{{ edu.period_text }}</div>{% endif %}
+              {% if edu.grade %}<div class="text-muted small">Grade: {{ edu.grade }}</div>{% endif %}
+              {% if edu.description %}<div class="mt-2">{{ edu.description|linebreaksbr }}</div>{% endif %}
+            </div>
+            <div class="list-item-actions">
+              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editEducationModal-{{ edu.id }}">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <form method="post" action="{% url 'delete_education' edu.id %}" class="d-inline">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this education?')">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Per-item Edit Education Modal -->
+          <div class="modal fade" id="editEducationModal-{{ edu.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <form class="modal-content" method="post" action="{% url 'update_education' edu.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                  <h5 class="modal-title">Edit Education</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-2">
+                    <label class="form-label">School</label>
+                    <input type="text" class="form-control" name="school" value="{{ edu.school }}">
+                  </div>
+                  <div class="row">
+                    <div class="col">
+                      <label class="form-label">Degree</label>
+                      <input type="text" class="form-control" name="degree" value="{{ edu.degree }}">
+                    </div>
+                    <div class="col">
+                      <label class="form-label">Field of Study</label>
+                      <input type="text" class="form-control" name="field" value="{{ edu.field_of_study }}">
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Period</label>
+                    <input type="text" class="form-control" name="period_text" value="{{ edu.period_text }}" placeholder="e.g., 2019 – 2023">
+                  </div>
+                  <div class="row mt-2">
+                    <div class="col">
+                      <label class="form-label">Grade</label>
+                      <input type="text" class="form-control" name="grade" value="{{ edu.grade }}">
+                    </div>
+                    <div class="col">
+                      <label class="form-label">Description</label>
+                      <input type="text" class="form-control" name="description" value="{{ edu.description }}">
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+                  <button class="btn btn-primary">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-muted">No education added yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Licenses & Certificates -->
+  <div class="card section-card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Licenses & Certificates</h5>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addLicenseModal">
+        <i class="fa-solid fa-plus"></i> Add
+      </button>
+    </div>
+    <div class="card-body">
+      {% if lc_list %}
+        {% for lc in lc_list %}
+          <div class="d-flex justify-content-between align-items-start border-bottom py-3">
+            <div>
+              <div class="fw-semibold">{{ lc.name }}</div>
+              <div class="text-muted small">{{ lc.issuing_org }}</div>
+              <div class="text-muted small">
+                {% if lc.issue_text %}Issued {{ lc.issue_text }}{% endif %}
+                {% if lc.expiry_text %} • Expires {{ lc.expiry_text }}{% endif %}
+              </div>
+              {% if lc.certificate_file %}
+                <div class="mt-2">
+                  <a href="{{ lc.certificate_file.url }}" target="_blank">View Certificate</a>
+                </div>
+              {% endif %}
+            </div>
+            <div class="list-item-actions">
+              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editLicenseModal-{{ lc.id }}">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <form method="post" action="{% url 'delete_license_certificate' lc.id %}" class="d-inline">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this license/certificate?')">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Per-item Edit License Modal -->
+          <div class="modal fade" id="editLicenseModal-{{ lc.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <form class="modal-content" method="post" action="{% url 'edit_license_certificate' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="lc_id" value="{{ lc.id }}">
+                <div class="modal-header">
+                  <h5 class="modal-title">Edit License/Certificate</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-2">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" name="name" value="{{ lc.name }}">
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Issuing Organization</label>
+                    <input type="text" class="form-control" name="issuing_org" value="{{ lc.issuing_org }}">
+                  </div>
+                  <div class="row">
+                    <div class="col">
+                      <label class="form-label">Issue (text)</label>
+                      <input type="text" class="form-control" name="issue_text" value="{{ lc.issue_text }}" placeholder="e.g., Jun 2022">
+                    </div>
+                    <div class="col">
+                      <label class="form-label">Expiry (text)</label>
+                      <input type="text" class="form-control" name="expiry_text" value="{{ lc.expiry_text }}" placeholder="e.g., Jun 2025 or 'No expiry'">
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <label class="form-label">Replace File (optional)</label>
+                    <input type="file" class="form-control" name="certificate_file" accept=".pdf,.jpg,.png,.jpeg,.webp,.gif">
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+                  <button class="btn btn-primary">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-muted">No license/certificate added yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Skills -->
+  <div class="card section-card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Skills</h5>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addSkillModal">
+        <i class="fa-solid fa-plus"></i> Add
+      </button>
+    </div>
+    <div class="card-body">
+      {% if skill_list %}
+        <div class="row">
+          {% for skill in skill_list %}
+          <div class="col-md-6">
+            <div class="border rounded p-3 mb-3 d-flex justify-content-between">
+              <div class="fw-semibold">{{ skill.skill_name }}</div>
+              <form method="post" action="{% url 'delete_skill' skill.id %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this skill?')">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-muted">No skills added yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Edit Profile -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'update_profile_info' %}">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Profile</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-control" name="full_name" value="{{ user_profile.full_name }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Headline</label>
+          <input type="text" class="form-control" name="headline" value="{{ user_profile.headline }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Location</label>
+          <input type="text" class="form-control" name="location" value="{{ user_profile.location }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Phone</label>
+          <input type="text" class="form-control" name="phone" value="{{ user_profile.phone }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Summary</label>
+          <textarea class="form-control" name="summary" rows="4">{{ user_profile.summary }}</textarea>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="is_alumni" name="is_alumni" {% if user_profile.is_alumni %}checked{% endif %}>
+          <label class="form-check-label" for="is_alumni">I am Alumni (enable schedule/meetings)</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Experience -->
+<div class="modal fade" id="addExperienceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'add_experience' %}">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">Add Experience</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">Title *</label>
+          <input type="text" class="form-control" name="title" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Employment Type</label>
+          <input type="text" class="form-control" name="employmentType">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Company *</label>
+          <input type="text" class="form-control" name="company" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Period</label>
+          <input type="text" class="form-control" name="period_text" placeholder="e.g., Jan 2021 – Mar 2023 or '2022 – Present'">
+        </div>
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="checkbox" id="currentRoleAdd" name="currentRole">
+          <label class="form-check-label" for="currentRoleAdd">I currently work here</label>
+        </div>
+        <div class="row mt-2">
+          <div class="col">
+            <label class="form-label">Location</label>
+            <input type="text" class="form-control" name="location">
+          </div>
+          <div class="col">
+            <label class="form-label">Location Type</label>
+            <input type="text" class="form-control" name="locationType" placeholder="On-site / Hybrid / Remote">
+          </div>
+        </div>
+        <div class="mb-2 mt-2">
+          <label class="form-label">Headline (optional)</label>
+          <input type="text" class="form-control" name="headline">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="4"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Education -->
+<div class="modal fade" id="addEducationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'add_education' %}">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">Add Education</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">School</label>
+          <input type="text" class="form-control" name="school" required>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label class="form-label">Degree</label>
+            <input type="text" class="form-control" name="degree">
+          </div>
+          <div class="col">
+            <label class="form-label">Field of Study</label>
+            <input type="text" class="form-control" name="field">
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Period</label>
+          <input type="text" class="form-control" name="period_text" placeholder="e.g., 2019 – 2023 or '2021 – Present'">
+        </div>
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="checkbox" id="edu_current" name="is_current">
+          <label class="form-check-label" for="edu_current">I am studying here</label>
+        </div>
+        <div class="row mt-2">
+          <div class="col">
+            <label class="form-label">Grade</label>
+            <input type="text" class="form-control" name="grade">
+          </div>
+          <div class="col">
+            <label class="form-label">Description</label>
+            <input type="text" class="form-control" name="description">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add License -->
+<div class="modal fade" id="addLicenseModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'add_license_certificate' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">Add License/Certificate</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">Name</label>
+          <input type="text" class="form-control" name="name" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Issuing Organization</label>
+          <input type="text" class="form-control" name="issuing_org">
+        </div>
+        <div class="row">
+          <div class="col">
+            <label class="form-label">Issue (text)</label>
+            <input type="text" class="form-control" name="issue_text" placeholder="e.g., Jun 2022">
+          </div>
+          <div class="col">
+            <label class="form-label">Expiry (text)</label>
+            <input type="text" class="form-control" name="expiry_text" placeholder="e.g., Jun 2025 or 'No expiry'">
+          </div>
+        </div>
+        <div class="mt-2">
+          <label class="form-label">Certificate File (optional)</label>
+          <input type="file" class="form-control" name="certificate_file" accept=".pdf,.jpg,.png,.jpeg,.webp,.gif">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Skill -->
+<div class="modal fade" id="addSkillModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'add_skill' %}">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">Add Skill</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">Skill Name</label>
+          <input type="text" class="form-control" name="skill_name" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Account -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" action="{% url 'delete_account' %}">
+          {% csrf_token %}
+          <button class="btn btn-danger">Delete Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
