@@ -43,6 +43,23 @@
     font-size: .85rem; 
   }
   .list-item-actions button { margin-left: 6px; }
+    .modal-backdrop {
+    z-index: 1040 !important;
+}
+
+.modal {
+    z-index: 1050 !important;
+}
+
+body.modal-open {
+    overflow: hidden !important;
+    padding-right: 0px !important;
+}
+
+/* Ensure modals are visible when shown */
+.modal.show {
+    display: block !important;
+}
 </style>
 {% endblock %}
 
@@ -51,10 +68,11 @@
 
 {% if messages %}
   <div class="mb-3">
-    {% for m in messages %}
-      {% if 'profile_update' in m.extra_tags %}
-        <div class="alert alert-{{ m.tags }} mb-2">{{ m }}</div>
-      {% endif %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
     {% endfor %}
   </div>
 {% endif %}
@@ -159,7 +177,7 @@
             </div>
           </div>
 
-          <!-- Per-item Edit Experience Modal -->
+          <!-- Edit Experience Modal for this item -->
           <div class="modal fade" id="editExperienceModal-{{ exp.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
               <form class="modal-content" method="post" action="{% url 'update_experience' exp.id %}">
@@ -198,10 +216,6 @@
                       <label class="form-label">Location Type</label>
                       <input type="text" class="form-control" name="location_type" value="{{ exp.location_type }}">
                     </div>
-                  </div>
-                  <div class="mb-2 mt-2">
-                    <label class="form-label">Headline (profile)</label>
-                    <input type="text" class="form-control" name="headline" value="{{ user_profile.headline }}">
                   </div>
                   <div class="mb-2">
                     <label class="form-label">Description</label>
@@ -257,7 +271,7 @@
             </div>
           </div>
 
-          <!-- Per-item Edit Education Modal -->
+          <!-- Edit Education Modal for this item -->
           <div class="modal fade" id="editEducationModal-{{ edu.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
               <form class="modal-content" method="post" action="{% url 'update_education' edu.id %}">
@@ -348,7 +362,7 @@
             </div>
           </div>
 
-          <!-- Per-item Edit License Modal -->
+          <!-- Edit License Modal for this item -->
           <div class="modal fade" id="editLicenseModal-{{ lc.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
               <form class="modal-content" method="post" action="{% url 'edit_license_certificate' %}" enctype="multipart/form-data">
@@ -429,7 +443,7 @@
 
 </div>
 
-<!-- ===================== MODALS ===================== -->
+<!-- ===================== MAIN MODALS ===================== -->
 
 <!-- Edit Profile -->
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
@@ -668,4 +682,88 @@
   </div>
 </div>
 
+{% endblock %}
+{% block extra_js %}
+<script>
+// Fix for modal backdrop issues
+document.addEventListener('DOMContentLoaded', function() {
+    // Remove any existing stuck backdrops immediately
+    const stuckBackdrops = document.querySelectorAll('.modal-backdrop');
+    stuckBackdrops.forEach(backdrop => {
+        backdrop.remove();
+    });
+
+    // Fix for modal buttons
+    const editButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
+
+    editButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Remove any existing backdrops before opening new modal
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                backdrop.remove();
+            });
+
+            const targetModal = this.getAttribute('data-bs-target');
+            const modalElement = document.querySelector(targetModal);
+
+            if (modalElement) {
+                // Use vanilla JS to show modal without Bootstrap backdrop
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                document.body.classList.add('modal-open');
+
+                // Add our own backdrop
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.style.zIndex = '1040';
+                document.body.appendChild(backdrop);
+
+                // Close modal when clicking backdrop
+                backdrop.addEventListener('click', function() {
+                    modalElement.style.display = 'none';
+                    modalElement.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                    backdrop.remove();
+                });
+
+                // Close modal when clicking close button
+                modalElement.querySelector('.btn-close').addEventListener('click', function() {
+                    modalElement.style.display = 'none';
+                    modalElement.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                    backdrop.remove();
+                });
+            }
+        });
+    });
+
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal.show').forEach(modal => {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+            });
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                backdrop.remove();
+            });
+            document.body.classList.remove('modal-open');
+        }
+    });
+});
+
+// Alternative simple method - disable Bootstrap backdrop completely
+const style = document.createElement('style');
+style.textContent = `
+    .modal-backdrop {
+        display: none !important;
+    }
+    .modal {
+        background: rgba(0,0,0,0.5);
+    }
+`;
+document.head.appendChild(style);
+</script>
 {% endblock %}
